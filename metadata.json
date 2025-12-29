@@ -1,0 +1,5 @@
+{
+  "name": "Web2PDF Content Extractor",
+  "description": "Chuyển đổi link web thành file PDF sạch sẽ, chỉ giữ lại phần tiêu đề, nội dung bài viết và nhận diện thương hiệu trang web, loại bỏ các thành phần gây nhiễu.",
+  "requestFramePermissions": []
+}
