@@ -256,17 +256,208 @@ export function extractArticleData(html: string, url: string): ArticleContent {
     }
   }
 
-  // 3. Trích xuất nội dung bằng Readability
-  const reader = new Readability(doc, { charThreshold: 20 });
-  const article = reader.parse();
-  if (!article) throw new Error('Không thể trích xuất nội dung.');
+  // KIỂM TRA TRANG VIDEO/AUDIO TRƯỚC - Ưu tiên cao nhất
+  let articleContent = '';
+  let articleExcerpt = '';
+  let articleByline = '';
+  let articleSiteName = '';
 
-  if (article.title && article.title.length > finalTitle.length && !article.title.includes('...')) {
-    finalTitle = article.title;
+  const briefEl = doc.querySelector('.brief-video, .brief-audio, .brief');
+  const contentVideoEl = doc.querySelector('.content-video, .article-content.content-video');
+
+  // Nếu là trang video/audio, lấy nội dung trực tiếp
+  if (briefEl || contentVideoEl) {
+    console.log('Detected video/audio page structure');
+
+    // Lấy sapo/excerpt từ brief-video (NGUYÊN BẢN, không tóm tắt)
+    if (briefEl && briefEl.textContent && briefEl.textContent.trim().length > 20) {
+      articleExcerpt = briefEl.textContent.trim();
+      console.log('Found brief-video for excerpt:', articleExcerpt.substring(0, 100));
+    }
+
+    // Lấy nội dung chính từ content-video (KHÔNG bao gồm brief để tránh lặp)
+    if (contentVideoEl && contentVideoEl.textContent && contentVideoEl.textContent.trim().length > 50) {
+      articleContent = contentVideoEl.innerHTML;
+      console.log('Found content-video:', contentVideoEl.textContent.substring(0, 100));
+    }
+
+    // Nếu không có content riêng, thử kết hợp brief + content
+    if (!articleContent && briefEl && contentVideoEl) {
+      const container = document.createElement('div');
+      container.appendChild(contentVideoEl.cloneNode(true));
+      articleContent = container.innerHTML;
+    }
   }
 
+  // Nếu không phải trang video hoặc không lấy được nội dung, dùng Readability
+  if (!articleContent || articleContent.replace(/<[^>]*>/g, '').trim().length < 200) {
+    console.log('Falling back to Readability parser...');
+    const reader = new Readability(doc.cloneNode(true) as Document, { charThreshold: 20 });
+    const article = reader.parse();
+
+    if (article) {
+      // Chỉ sử dụng Readability nếu nội dung tốt hơn
+      const readabilityTextLength = (article.content || '').replace(/<[^>]*>/g, '').trim().length;
+      const currentTextLength = articleContent.replace(/<[^>]*>/g, '').trim().length;
+
+      if (readabilityTextLength > currentTextLength) {
+        articleContent = article.content || '';
+        console.log('Readability provided better content, length:', readabilityTextLength);
+      }
+
+      if (!articleExcerpt) articleExcerpt = article.excerpt || '';
+      if (!articleByline) articleByline = article.byline || '';
+      if (!articleSiteName) articleSiteName = article.siteName || '';
+    }
+  }
+
+  // FALLBACK: Nếu vẫn còn nội dung quá ngắn, thử trích xuất trực tiếp
+  // Điều này giúp xử lý các trang có cấu trúc khác
   const contentContainer = document.createElement('div');
-  contentContainer.innerHTML = article.content;
+
+  if (!articleContent || articleContent.replace(/<[^>]*>/g, '').trim().length < 200) {
+    console.log('Content still too short, trying additional fallback extraction...');
+
+    let fallbackContent = '';
+
+    // ĐẶC BIỆT CHO TRANG VIDEO/AUDIO: Kết hợp brief + content
+    const briefEl = doc.querySelector('.brief-video, .brief-audio, .brief');
+    const contentVideoEl = doc.querySelector('.content-video, .article-content, .content-audio');
+
+    if (briefEl || contentVideoEl) {
+      const container = document.createElement('div');
+
+      // Thêm brief/sapo
+      if (briefEl && briefEl.textContent && briefEl.textContent.trim().length > 20) {
+        const briefP = document.createElement('p');
+        briefP.innerHTML = briefEl.innerHTML;
+        briefP.style.fontWeight = 'bold';
+        container.appendChild(briefP);
+        console.log('Found brief-video:', briefEl.textContent.substring(0, 100));
+      }
+
+      // Thêm nội dung chính
+      if (contentVideoEl && contentVideoEl.textContent && contentVideoEl.textContent.trim().length > 50) {
+        // Clone nội dung
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = contentVideoEl.innerHTML;
+        container.appendChild(contentDiv);
+        console.log('Found content-video:', contentVideoEl.textContent.substring(0, 100));
+      }
+
+      if (container.textContent && container.textContent.trim().length > 100) {
+        fallbackContent = container.innerHTML;
+        console.log('Using video/audio combined content, length:', fallbackContent.length);
+      }
+    }
+
+    // Nếu không phải video, thử các selector phổ biến khác
+    if (!fallbackContent) {
+      // Các selector phổ biến cho nội dung bài viết
+      const contentSelectors = [
+        '.detail-video .big-video',
+        '.detail-content',
+        '.detail__content',
+        '.article-content',
+        '.article-body',
+        '.post-content',
+        '.entry-content',
+        '.cms-body',
+        '.video-content',
+        '.video-detail',
+        '.content-detail',
+        '.news-content',
+        'article .content',
+        '.main-content article',
+        '[class*="detail"] [class*="content"]',
+        '[class*="article"] [class*="body"]'
+      ];
+
+      // Thử từng selector
+      for (const selector of contentSelectors) {
+        const el = doc.querySelector(selector);
+        if (el && el.textContent && el.textContent.trim().length > 100) {
+          fallbackContent = el.innerHTML;
+          console.log('Found content using selector:', selector);
+          break;
+        }
+      }
+    }
+
+    // Nếu vẫn không tìm thấy, thử tìm .sapo rồi lấy các phần tử tiếp theo
+    if (!fallbackContent) {
+      const sapoEl = doc.querySelector('.sapo, .summary, .excerpt, .lead, [class*="sapo"]');
+      if (sapoEl) {
+        const container = document.createElement('div');
+
+        // Thêm sapo
+        const sapoDiv = document.createElement('p');
+        sapoDiv.innerHTML = sapoEl.innerHTML;
+        container.appendChild(sapoDiv);
+
+        // Tìm nội dung chính sau sapo
+        let sibling = sapoEl.nextElementSibling;
+        let collectedLength = 0;
+        while (sibling && collectedLength < 10000) {
+          // Bỏ qua các phần tử rác
+          const className = sibling.className?.toLowerCase() || '';
+          const tagName = sibling.tagName?.toLowerCase() || '';
+
+          if (className.includes('related') || className.includes('share') ||
+            className.includes('social') || className.includes('comment') ||
+            className.includes('sidebar') || className.includes('ads') ||
+            tagName === 'script' || tagName === 'style') {
+            sibling = sibling.nextElementSibling;
+            continue;
+          }
+
+          // Thêm nội dung
+          if (sibling.textContent && sibling.textContent.trim().length > 0) {
+            container.appendChild(sibling.cloneNode(true));
+            collectedLength += sibling.textContent.length;
+          }
+
+          sibling = sibling.nextElementSibling;
+        }
+
+        if (container.textContent && container.textContent.trim().length > 100) {
+          fallbackContent = container.innerHTML;
+          console.log('Found content using sapo + siblings method');
+        }
+      }
+    }
+
+    // Nếu vẫn không có, tìm tất cả <p> trong main hoặc article
+    if (!fallbackContent) {
+      const mainAreas = doc.querySelectorAll('main, article, .main, .article, [role="main"]');
+      for (const area of mainAreas) {
+        const paragraphs = area.querySelectorAll('p');
+        if (paragraphs.length > 2) {
+          const container = document.createElement('div');
+          paragraphs.forEach(p => {
+            if (p.textContent && p.textContent.trim().length > 30) {
+              container.appendChild(p.cloneNode(true));
+            }
+          });
+          if (container.textContent && container.textContent.trim().length > 200) {
+            fallbackContent = container.innerHTML;
+            console.log('Found content using paragraph collection from', area.tagName);
+            break;
+          }
+        }
+      }
+    }
+
+    // Sử dụng fallback nếu tìm thấy
+    if (fallbackContent && fallbackContent.replace(/<[^>]*>/g, '').trim().length > articleContent.replace(/<[^>]*>/g, '').trim().length) {
+      articleContent = fallbackContent;
+      console.log('Using fallback content, length:', fallbackContent.length);
+    }
+  }
+
+  if (!articleContent) throw new Error('Không thể trích xuất nội dung.');
+
+  contentContainer.innerHTML = articleContent;
 
   // 4. KIỂM TRA LẶP ẢNH ĐẠI DIỆN VỚI THÂN BÀI
   let mainImage = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
@@ -280,7 +471,7 @@ export function extractArticleData(html: string, url: string): ArticleContent {
     mainImage = '';
   }
 
-  let summary = article.excerpt || '';
+  let summary = articleExcerpt;
 
   // 5. Làm sạch nội dung (bao gồm cả xóa lặp metadata ở đầu)
   cleanContent(contentContainer, finalTitle, summary);
@@ -299,9 +490,9 @@ export function extractArticleData(html: string, url: string): ArticleContent {
   }
 
   return {
-    siteName: article.siteName || '',
+    siteName: articleSiteName,
     title: finalTitle.replace(/\s+/g, ' ').trim(),
-    author: article.byline || '',
+    author: articleByline,
     publishDate: '',
     content: contentContainer.innerHTML,
     summary: summary,
