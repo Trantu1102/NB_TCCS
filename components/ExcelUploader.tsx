@@ -36,12 +36,13 @@ export function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderProps) {
                             status: String(row[2] || ''),
                             url: url,
                             type: String(row[4] || ''),
-                            category: String(row[5] || ''),
-                            publishDate: String(row[6] || ''),
-                            publishDateFull: String(row[7] || ''),
-                            creator: String(row[8] || ''),
-                            views: Number(row[9]) || 0,
-                            displayStatus: String(row[10] || ''),
+                            author: String(row[5] || ''),      // Tác giả - cột mới
+                            category: String(row[6] || ''),
+                            publishDate: String(row[7] || ''),
+                            publishDateFull: String(row[8] || ''),
+                            creator: String(row[9] || ''),     // Người tạo - đã dịch sang cột 9
+                            views: Number(row[10]) || 0,
+                            displayStatus: String(row[11] || ''),
                         });
                     }
                 }

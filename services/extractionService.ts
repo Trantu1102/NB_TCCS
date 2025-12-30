@@ -287,6 +287,48 @@ export function extractArticleData(html: string, url: string): ArticleContent {
       container.appendChild(contentVideoEl.cloneNode(true));
       articleContent = container.innerHTML;
     }
+
+    // Lấy tác giả từ DOM - thử nhiều selector phổ biến
+    const authorSelectors = [
+      '.autor-video',  // Selector đặc biệt của trang video (typo trong HTML gốc)
+      '.author-video',
+      '.autor-news',
+      '.author-news',
+      '.autor-magazine',
+      '.author-magazine',
+      '.autor-audio',
+      '.author-audio',
+      '.author',
+      '.byline',
+      '.writer',
+      '.article-author',
+      '.post-author',
+      '[class*="author"]',
+      '[class*="autor"]',
+      '[class*="writer"]',
+      '.meta-author',
+      '.article-meta .author'
+    ];
+
+    for (const sel of authorSelectors) {
+      const authorEl = doc.querySelector(sel);
+      if (authorEl && authorEl.textContent && authorEl.textContent.trim().length > 2) {
+        articleByline = authorEl.textContent.trim();
+        console.log('Found author from DOM:', articleByline);
+        break;
+      }
+    }
+
+    // Nếu không tìm thấy, kiểm tra trong nội dung (thường ở cuối bài dạng "Tác giả: X" hoặc chỉ tên)
+    if (!articleByline && contentVideoEl) {
+      const contentText = contentVideoEl.textContent || '';
+      // Tìm pattern "Tên tác giả (tổng hợp)" hoặc tên ở cuối dòng
+      const authorMatch = contentText.match(/\n([A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ][a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]+\s+[A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ][a-zàáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]+(?:\s+[^\n]{0,20})?)\s*$/);
+      if (authorMatch) {
+        articleByline = authorMatch[1].trim();
+        console.log('Found author from content pattern:', articleByline);
+      }
+    }
   }
 
   // Nếu không phải trang video hoặc không lấy được nội dung, dùng Readability
@@ -308,6 +350,39 @@ export function extractArticleData(html: string, url: string): ArticleContent {
       if (!articleExcerpt) articleExcerpt = article.excerpt || '';
       if (!articleByline) articleByline = article.byline || '';
       if (!articleSiteName) articleSiteName = article.siteName || '';
+    }
+  }
+
+  // TÌM TÁC GIẢ TỪ DOM - Áp dụng cho TẤT CẢ các trang (video, news, magazine, etc.)
+  // Chạy sau Readability để đảm bảo ghi đè nếu tìm thấy tác giả chính xác hơn
+  if (!articleByline) {
+    const authorSelectors = [
+      '.autor-video',
+      '.author-video',
+      '.autor-news',
+      '.author-news',
+      '.autor-magazine',
+      '.author-magazine',
+      '.autor-audio',
+      '.author-audio',
+      '.author',
+      '.byline',
+      '.writer',
+      '.article-author',
+      '.post-author',
+      '[class*="autor-"]',
+      '[class*="author-"]',
+      '.meta-author',
+      '.article-meta .author'
+    ];
+
+    for (const sel of authorSelectors) {
+      const authorEl = doc.querySelector(sel);
+      if (authorEl && authorEl.textContent && authorEl.textContent.trim().length > 2) {
+        articleByline = authorEl.textContent.trim();
+        console.log('Found author from DOM selector:', sel, '->', articleByline);
+        break;
+      }
     }
   }
 

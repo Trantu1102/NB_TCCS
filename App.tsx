@@ -206,7 +206,6 @@ function App() {
               {/* Metadata line */}
               <div className="text-center mb-10 text-gray-700 border-b border-gray-100 pb-8 flex flex-col items-center">
                 {extractedData.publishDate && <div className="text-lg mb-1 text-gray-500">{extractedData.publishDate}</div>}
-                {extractedData.author && <div className="font-bold text-lg text-gray-800">Tác giả: {extractedData.author}</div>}
               </div>
 
               {/* SAPO (Summary) */}

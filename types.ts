@@ -22,10 +22,11 @@ export interface ExcelArticle {
   status: string;
   url: string;
   type: string;
+  author: string;     // Tác giả - cột mới trong template
   category: string;
   publishDate: string;
   publishDateFull: string;
-  creator: string;
+  creator: string;    // Người tạo
   views: number;
   displayStatus: string;
 }
