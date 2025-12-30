@@ -74,7 +74,7 @@ export async function generatePhieuKiemTra(article: ExcelArticle): Promise<void>
                         new TextRun({ text: 'Tác giả: ', size: size14, font }),
                         new TextRun({ text: article.creator || '……………………', size: size14, font }),
                         new TextRun({ text: '\t\t\tBút danh: ……………… ', size: size14, font }),
-                        new TextRun({ text: '(tổng hợp)', italics: true, size: size14, font }),
+                        
                     ],
                     spacing: { after: 120 },
                 }),
