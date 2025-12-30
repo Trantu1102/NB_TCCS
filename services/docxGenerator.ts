@@ -58,10 +58,10 @@ export async function generatePhieuKiemTra(article: ExcelArticle): Promise<void>
                     spacing: { after: 360 },
                 }),
 
-                // Tin tổng hợp: [TIÊU ĐỀ] + (1 ảnh KT)
+                // Tin tổng hợp: [LOẠI BÀI VIẾT] + [TIÊU ĐỀ]
                 new Paragraph({
                     children: [
-                        new TextRun({ text: 'Tin tổng hợp: ', size: size14, font }),
+                        new TextRun({ text: `${article.type || 'Tin tổng hợp'}: `, size: size14, font }),
                         new TextRun({ text: article.title, bold: true, italics: true, size: size14, font }),
 
                     ],

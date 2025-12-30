@@ -32,6 +32,7 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl }: Article
                         <tr>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">STT</th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tiêu đề</th>
+                            <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Loại bài viết</th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Người tạo</th>
                             <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày đăng</th>
                             <th className="px-3 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Thao tác</th>
@@ -53,6 +54,11 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl }: Article
                                     <div className="text-xs text-gray-400 truncate max-w-sm mt-1" title={article.url}>
                                         {article.url}
                                     </div>
+                                </td>
+                                <td className="px-3 py-4 text-sm text-gray-600">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {article.type || '-'}
+                                    </span>
                                 </td>
                                 <td className="px-3 py-4 text-sm text-gray-700 font-medium">
                                     {article.creator}
