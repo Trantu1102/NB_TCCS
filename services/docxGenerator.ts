@@ -68,13 +68,13 @@ export async function generatePhieuKiemTra(article: ExcelArticle): Promise<void>
                     spacing: { after: 120 },
                 }),
 
-                // Tác giả + Bút danh
+                // Tác giả + Bút danh (ưu tiên cột tác giả, nếu trống thì lấy người tạo)
                 new Paragraph({
                     children: [
                         new TextRun({ text: 'Tác giả: ', size: size14, font }),
-                        new TextRun({ text: article.creator || '……………………', size: size14, font }),
+                        new TextRun({ text: article.author || article.creator || '……………………', size: size14, font }),
                         new TextRun({ text: '\t\t\tBút danh: ……………… ', size: size14, font }),
-                        
+
                     ],
                     spacing: { after: 120 },
                 }),

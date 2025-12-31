@@ -244,17 +244,63 @@ export function extractArticleData(html: string, url: string): ArticleContent {
     doc.querySelector('title')?.textContent || '';
   metaTitle = metaTitle.replace(/\s+[-|]\s+.*$/, '').trim();
 
-  // 2. KHÔI PHỤC TIÊU ĐỀ ĐẦY ĐỦ (Title Recovery)
+  // 2. KHÔI PHỤC TIÊU ĐỀ ĐẦY ĐỦ (Title Recovery) - Cải tiến
   let finalTitle = metaTitle;
-  const prefix = metaTitle.replace('...', '').trim();
 
-  const headings = Array.from(doc.querySelectorAll('h1, h2, .title, .post-title, .entry-title'));
-  for (const h of headings) {
-    const hText = h.textContent?.trim() || '';
-    if (hText.toLowerCase().includes(prefix.toLowerCase()) && hText.length > finalTitle.length) {
-      finalTitle = hText;
+  // Phát hiện tiêu đề bị cắt (chứa ... hoặc quá ngắn so với thường lệ)
+  const isTruncated = metaTitle.includes('...') || metaTitle.includes('…');
+  const prefix = metaTitle.replace(/\.{3,}|…/g, '').trim();
+
+  // Tìm tất cả các heading có thể chứa tiêu đề đầy đủ
+  const headingSelectors = [
+    'h1',
+    'h2',
+    '.title',
+    '.post-title',
+    '.entry-title',
+    '.article-title',
+    '.news-title',
+    '.detail-title h1',
+    '.detail-title',
+    '.cms-title',
+    '[class*="title"] h1',
+    '[class*="title"] h2',
+    'article h1',
+    '.main-content h1',
+    '.content h1'
+  ];
+
+  let longestTitle = finalTitle;
+
+  for (const selector of headingSelectors) {
+    const elements = doc.querySelectorAll(selector);
+    for (const h of elements) {
+      const hText = (h.textContent || '').trim();
+
+      // Bỏ qua tiêu đề quá ngắn hoặc là navigation
+      if (hText.length < 10) continue;
+      if (hText.toLowerCase().includes('menu') || hText.toLowerCase().includes('navigation')) continue;
+
+      // Nếu tiêu đề hiện tại bị cắt, tìm phiên bản đầy đủ
+      if (isTruncated) {
+        // Kiểm tra xem heading này có bắt đầu giống prefix không
+        const prefixLower = prefix.toLowerCase().substring(0, 30);
+        const hTextLower = hText.toLowerCase();
+        if (hTextLower.startsWith(prefixLower) || prefixLower.startsWith(hTextLower.substring(0, 30))) {
+          if (hText.length > longestTitle.length && !hText.includes('...') && !hText.includes('…')) {
+            longestTitle = hText;
+          }
+        }
+      } else {
+        // Nếu không bị cắt, vẫn tìm phiên bản dài hơn
+        if (hText.toLowerCase().includes(prefix.toLowerCase().substring(0, 20)) && hText.length > longestTitle.length) {
+          longestTitle = hText;
+        }
+      }
     }
   }
+
+  finalTitle = longestTitle;
 
   // KIỂM TRA TRANG VIDEO/AUDIO TRƯỚC - Ưu tiên cao nhất
   let articleContent = '';

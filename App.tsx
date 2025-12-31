@@ -20,6 +20,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [articles, setArticles] = useState<ExcelArticle[]>([]);
   const [currentExcelCreator, setCurrentExcelCreator] = useState<string>('');
+  const [currentExcelAuthor, setCurrentExcelAuthor] = useState<string>('');
+  const [currentExcelTitle, setCurrentExcelTitle] = useState<string>('');
 
   const handleScrape = async (targetUrl: string) => {
     if (!targetUrl) return;
@@ -71,6 +73,8 @@ function App() {
 
   const handleArticlePreview = async (article: ExcelArticle) => {
     setUrl(article.url);
+    setCurrentExcelAuthor(article.author || '');
+    setCurrentExcelTitle(article.title || '');
     await handleScrape(article.url);
   };
 
@@ -98,7 +102,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 font-sans text-gray-900">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="bg-white shadow-lg p-6 mb-8 rounded-xl border border-gray-200">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -162,6 +166,11 @@ function App() {
               articles={articles}
               onPreview={handleArticlePreview}
               loadingArticleUrl={loadingArticleUrl}
+              onUpdateArticle={(updatedArticle) => {
+                setArticles(prev => prev.map(a =>
+                  a.stt === updatedArticle.stt ? updatedArticle : a
+                ));
+              }}
             />
           </div>
         )}
@@ -198,10 +207,29 @@ function App() {
                 </div>
               </div>
 
-              {/* Title Section */}
-              <h1 className="text-3xl font-black text-center mb-6 leading-tight text-gray-900 block w-full h-auto overflow-visible whitespace-normal break-words px-2">
-                {extractedData.title}
-              </h1>
+              {/* Title Section - Auto-resize based on length, prefer Excel title */}
+              {(() => {
+                const displayTitle = currentExcelTitle || extractedData.title;
+                return (
+                  <h1
+                    className={`font-black text-center mb-6 leading-tight text-gray-900 block w-full h-auto overflow-visible whitespace-normal break-words px-2 ${displayTitle.length > 150 ? 'text-xl' :
+                      displayTitle.length > 100 ? 'text-2xl' :
+                        'text-3xl'
+                      }`}
+                  >
+                    {displayTitle}
+                  </h1>
+                );
+              })()}
+
+              {/* Author from Excel */}
+              {currentExcelAuthor && (
+                <div className="text-center mb-6">
+                  <span className="text-base font-bold text-gray-800 uppercase tracking-wide">
+                    {currentExcelAuthor}
+                  </span>
+                </div>
+              )}
 
               {/* Metadata line */}
               <div className="text-center mb-10 text-gray-700 border-b border-gray-100 pb-8 flex flex-col items-center">

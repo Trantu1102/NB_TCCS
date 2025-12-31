@@ -29,4 +29,9 @@ export interface ExcelArticle {
   creator: string;    // Người tạo
   views: number;
   displayStatus: string;
+  // Đếm ảnh theo loại
+  imageKhaiThac?: number;  // Ảnh khai thác (không có nguồn/tác giả)
+  imageTuLieu?: number;    // Ảnh tư liệu (Nguồn: ... hoặc Ảnh: Tư liệu)
+  imageTacGia?: number;    // Ảnh có tên tác giả (Ảnh: Tên tác giả)
+  imageCountLoaded?: boolean; // Đánh dấu đã đếm ảnh chưa
 }

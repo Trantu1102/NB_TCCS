@@ -52,6 +52,26 @@ export function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderProps) {
                     return;
                 }
 
+                // Sắp xếp theo ngày đăng giảm dần (mới nhất lên đầu)
+                articles.sort((a, b) => {
+                    // Parse date từ format "dd/mm/yyyy" hoặc "dd-mm-yyyy"
+                    const parseDate = (dateStr: string): Date => {
+                        if (!dateStr) return new Date(0);
+                        const parts = dateStr.split(/[\/\-]/);
+                        if (parts.length === 3) {
+                            const day = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1;
+                            const year = parseInt(parts[2], 10);
+                            return new Date(year, month, day);
+                        }
+                        return new Date(0);
+                    };
+
+                    const dateA = parseDate(a.publishDate);
+                    const dateB = parseDate(b.publishDate);
+                    return dateB.getTime() - dateA.getTime(); // Giảm dần
+                });
+
                 onDataLoaded(articles);
             } catch (err) {
                 onError('Lỗi đọc file Excel. Vui lòng kiểm tra định dạng file.');
