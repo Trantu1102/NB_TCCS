@@ -3,17 +3,23 @@ import { ExcelArticle } from '../types';
 import { generatePhieuKiemTra } from '../services/docxGenerator';
 import { countImagesInArticle } from '../services/imageCounterService';
 import { exportArticlesToExcel } from '../services/excelExportService';
+import { exportAllPhieuKiemTraToWord, exportAllArticlesToPDF, BatchExportProgress, ExportResult, downloadErrorLog } from '../services/batchExportService';
 
 interface ArticleTableProps {
     articles: ExcelArticle[];
     onPreview: (article: ExcelArticle) => void;
     loadingArticleUrl: string | null;
     onUpdateArticle?: (updatedArticle: ExcelArticle) => void;
+    onFetchArticleContent?: (url: string) => Promise<{ title: string; author: string; content: string; summary: string; mainImage: string }>;
 }
 
-export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateArticle }: ArticleTableProps) {
+export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateArticle, onFetchArticleContent }: ArticleTableProps) {
     const [countingUrl, setCountingUrl] = useState<string | null>(null);
     const [countingAll, setCountingAll] = useState(false);
+    const [exportingWord, setExportingWord] = useState(false);
+    const [exportingPDF, setExportingPDF] = useState(false);
+    const [exportProgress, setExportProgress] = useState<BatchExportProgress | null>(null);
+    const [lastExportResult, setLastExportResult] = useState<ExportResult | null>(null);
 
     const handleExportDocx = async (article: ExcelArticle) => {
         try {
@@ -83,6 +89,50 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateA
         setCountingAll(false);
     };
 
+    // Xuất tất cả phiếu kiểm tra Word
+    const handleExportAllWord = async () => {
+        if (exportingWord) return;
+        setExportingWord(true);
+        try {
+            await exportAllPhieuKiemTraToWord(articles);
+        } catch (error) {
+            console.error('Error exporting all Word:', error);
+            alert('Lỗi khi xuất file Word!');
+        } finally {
+            setExportingWord(false);
+        }
+    };
+
+    // Xuất tất cả bài thành PDF liên tục
+    const handleExportAllPDF = async () => {
+        if (exportingPDF || !onFetchArticleContent) return;
+        setExportingPDF(true);
+        setExportProgress(null);
+        setLastExportResult(null);
+
+        try {
+            const result = await exportAllArticlesToPDF(
+                articles,
+                onFetchArticleContent,
+                (progress) => setExportProgress(progress)
+            );
+            setLastExportResult(result);
+        } catch (error) {
+            console.error('Error exporting all PDF:', error);
+            alert('Lỗi khi xuất PDF!');
+        } finally {
+            setExportingPDF(false);
+            setExportProgress(null);
+        }
+    };
+
+    // Tải file log lỗi
+    const handleDownloadErrorLog = () => {
+        if (lastExportResult && lastExportResult.failedArticles.length > 0) {
+            downloadErrorLog(lastExportResult.failedArticles, lastExportResult.totalArticles);
+        }
+    };
+
     return (
         <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
             <div className="p-4 bg-gradient-to-r from-red-700 to-red-600 text-white flex justify-between items-center">
@@ -126,6 +176,66 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateA
                         </svg>
                         Xuất Excel
                     </button>
+                    {/* Nút xuất tất cả Word */}
+                    <button
+                        onClick={handleExportAllWord}
+                        disabled={exportingWord}
+                        className="px-4 py-2 bg-white text-blue-700 text-sm font-bold rounded-lg hover:bg-blue-50 disabled:opacity-50 flex items-center gap-2 shadow-md transition-all duration-200 hover:shadow-lg"
+                        title="Xuất tất cả phiếu kiểm tra thành 1 file Word"
+                    >
+                        {exportingWord ? (
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6z" />
+                                <path d="M8 13l1.5 5 1.5-3 1.5 3 1.5-5h1.5l-2.5 7h-1l-1.5-3-1.5 3h-1L6 13h1.5z" />
+                            </svg>
+                        )}
+                        Xuất Word (Tất cả)
+                    </button>
+                    {/* Nút xuất tất cả PDF */}
+                    {onFetchArticleContent && (
+                        <button
+                            onClick={handleExportAllPDF}
+                            disabled={exportingPDF}
+                            className="px-4 py-2 bg-white text-red-700 text-sm font-bold rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center gap-2 shadow-md transition-all duration-200 hover:shadow-lg"
+                            title="Xuất tất cả bài viết thành 1 file PDF liên tục"
+                        >
+                            {exportingPDF && exportProgress ? (
+                                <>
+                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {exportProgress.current}/{exportProgress.total}
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
+                                        <path d="M8 12h8v2H8zm0 4h5v2H8z" />
+                                    </svg>
+                                    Xuất PDF (Tất cả)
+                                </>
+                            )}
+                        </button>
+                    )}
+                    {/* Nút tải Log Lỗi - chỉ hiện khi có lỗi */}
+                    {lastExportResult && lastExportResult.failedArticles.length > 0 && (
+                        <button
+                            onClick={handleDownloadErrorLog}
+                            className="px-4 py-2 bg-yellow-500 text-white text-sm font-bold rounded-lg hover:bg-yellow-600 flex items-center gap-2 shadow-md transition-all duration-200 hover:shadow-lg animate-pulse"
+                            title={`Tải danh sách ${lastExportResult.failedArticles.length} bài bị lỗi`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Tải Log ({lastExportResult.failedArticles.length} lỗi)
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -138,7 +248,8 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateA
                             <th className="px-2 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Loại</th>
                             <th className="px-2 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tác giả</th>
                             <th className="px-2 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Người tạo</th>
-                            <th className="px-2 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày đăng</th>
+                            <th className="px-2 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Danh mục</th>
+                            <th className="px-2 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ngày XB</th>
                             {/* Cột đếm ảnh */}
                             <th className="px-2 py-3 text-center text-xs font-bold text-orange-600 uppercase tracking-wider bg-orange-50" title="Ảnh khai thác">K.thác</th>
                             <th className="px-2 py-3 text-center text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50" title="Ảnh tư liệu">T.liệu</th>
@@ -181,15 +292,16 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateA
                                         className="px-2 py-1 text-xs font-medium bg-blue-50 border border-blue-200 rounded-lg text-blue-800 cursor-pointer hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
                                     >
                                         <option value="">-- Chọn loại --</option>
-                                        <option value="Tin tức">Tin tức</option>
                                         <option value="Tin mới">Tin mới</option>
                                         <option value="Tin tổng hợp">Tin tổng hợp</option>
-                                        <option value="KT + biên tập">KT + biên tập</option>
-                                        <option value="photos">Photos</option>
-                                        <option value="Emagazine">Emagazine</option>
-                                        <option value="Mega story">Mega story</option>
+                                        <option value="Tin KT">Tin KT</option>
+                                        <option value="Bài KT">Bài KT</option>
+                                        <option value="Phóng sự ảnh TH">Phóng sự ảnh TH</option>
                                         <option value="Video">Video</option>
                                         <option value="Audio">Audio</option>
+                                        <option value="Infographic">Infographic</option>
+                                        <option value="Banner">Banner</option>
+                                        <option value="MegaStory">MegaStory</option>
                                     </select>
                                 </td>
                                 <td className="px-2 py-4 text-sm text-gray-700 font-medium max-w-[100px] truncate" title={article.author}>
@@ -198,8 +310,11 @@ export function ArticleTable({ articles, onPreview, loadingArticleUrl, onUpdateA
                                 <td className="px-2 py-4 text-sm text-gray-700 font-medium max-w-[100px] truncate" title={article.creator}>
                                     {article.creator}
                                 </td>
+                                <td className="px-2 py-4 text-sm text-gray-600 max-w-[100px] truncate" title={article.category}>
+                                    {article.category || '-'}
+                                </td>
                                 <td className="px-2 py-4 text-sm text-gray-600 whitespace-nowrap">
-                                    {article.publishDate}
+                                    {article.publishDateFull || article.publishDate}
                                 </td>
                                 {/* Cột đếm ảnh */}
                                 <td className="px-2 py-4 text-center bg-orange-50">

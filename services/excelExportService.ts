@@ -56,6 +56,29 @@ const numberCellStyle = {
     },
 };
 
+// Style cho hàng danh mục
+const categoryRowStyle = {
+    fill: {
+        patternType: 'solid',
+        fgColor: { rgb: 'FFFFCC' }, // Màu vàng nhạt hơn header
+    },
+    font: {
+        bold: true,
+        sz: 11,
+    },
+    alignment: {
+        horizontal: 'left',
+        vertical: 'center',
+        wrapText: true, // Tự động xuống dòng nếu quá dài
+    },
+    border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } },
+    }
+};
+
 export function exportArticlesToExcel(articles: ExcelArticle[], fileName?: string): void {
     // Tạo workbook mới
     const wb = XLSX.utils.book_new();
@@ -85,52 +108,92 @@ export function exportArticlesToExcel(articles: ExcelArticle[], fileName?: strin
     data.push([{ v: '', t: 's' }]);
 
     // Dòng 5: Header chính (theo mẫu Excel)
-    // Cột: A=TT | B=Tác giả | C=Tiêu đề | D=Loại bài viết | E,F=Xếp loại bài | G,H,I=Ảnh | J=Xếp loại ảnh | K=Ghi chú
+    // Cột: A=TT | B=Tác giả | C=Tiêu đề | D=Loại bài viết | E=Ngày xuất bản | F,G=Xếp loại bài | H,I,J=Ảnh | K=Xếp loại ảnh | L=Ghi chú
     data.push([
         { v: 'TT', t: 's', s: headerStyle },                    // A - TT
         { v: 'Tác giả', t: 's', s: headerStyle },               // B - Tác giả
-        { v: 'Tiêu đề', t: 's', s: headerStyle },               // C - Tiêu đề (có label)
+        { v: 'Tiêu đề', t: 's', s: headerStyle },               // C - Tiêu đề
         { v: 'Loại bài viết', t: 's', s: headerStyle },         // D - Loại bài viết
-        { v: '     Xếp loại bài', t: 's', s: headerStyle },     // E - Xếp loại bài (merge E-F)
-        { v: '', t: 's', s: headerStyle },                      // F
-        { v: 'Ảnh', t: 's', s: headerStyle },                   // G - Ảnh (merge G-I)
-        { v: '', t: 's', s: headerStyle },                      // H
+        { v: 'Ngày xuất bản', t: 's', s: headerStyle },         // E - Ngày xuất bản (MỚI)
+        { v: 'Xếp loại bài', t: 's', s: headerStyle },          // F - Xếp loại bài (merge F-G)
+        { v: '', t: 's', s: headerStyle },                      // G
+        { v: 'Ảnh', t: 's', s: headerStyle },                   // H - Ảnh (merge H-J)
         { v: '', t: 's', s: headerStyle },                      // I
-        { v: 'Xếp loại ảnh', t: 's', s: headerStyle },          // J - Xếp loại ảnh
-        { v: 'Ghi chú', t: 's', s: headerStyle }                // K - Ghi chú
+        { v: '', t: 's', s: headerStyle },                      // J
+        { v: 'Xếp loại ảnh', t: 's', s: headerStyle },          // K - Xếp loại ảnh
+        { v: 'Ghi chú', t: 's', s: headerStyle }                // L - Ghi chú
     ]);
 
-    // Dòng 5: Sub-header
+    // Dòng 6: Sub-header
     data.push([
         { v: '', t: 's', s: headerStyle },                      // A
         { v: '', t: 's', s: headerStyle },                      // B
         { v: '', t: 's', s: headerStyle },                      // C
         { v: '', t: 's', s: headerStyle },                      // D
-        { v: 'Tác giả', t: 's', s: headerStyle },               // E - Xếp loại - Tác giả
-        { v: 'Biên tập', t: 's', s: headerStyle },              // F - Xếp loại - Biên tập
-        { v: 'Khai thác', t: 's', s: headerStyle },             // G - Ảnh - Khai thác
-        { v: 'Tư liệu', t: 's', s: headerStyle },               // H - Ảnh - Tư liệu
-        { v: 'Tác giả', t: 's', s: headerStyle },               // I - Ảnh - Tác giả
-        { v: '', t: 's', s: headerStyle },                      // J
-        { v: '', t: 's', s: headerStyle }                       // K
+        { v: '', t: 's', s: headerStyle },                      // E - Ngày xuất bản
+        { v: 'Tác giả', t: 's', s: headerStyle },               // F - Xếp loại - Tác giả
+        { v: 'Biên tập', t: 's', s: headerStyle },              // G - Xếp loại - Biên tập
+        { v: 'Khai thác', t: 's', s: headerStyle },             // H - Ảnh - Khai thác
+        { v: 'Tư liệu', t: 's', s: headerStyle },               // I - Ảnh - Tư liệu
+        { v: 'Tác giả', t: 's', s: headerStyle },               // J - Ảnh - Tác giả
+        { v: '', t: 's', s: headerStyle },                      // K
+        { v: '', t: 's', s: headerStyle }                       // L
     ]);
 
-    // Thêm dữ liệu bài viết
-    articles.forEach((article, index) => {
-        const row = [
-            { v: index + 1, t: 'n', s: numberCellStyle },                                // A - TT
-            { v: article.author || article.creator || '', t: 's', s: dataCellStyle },    // B - Tác giả
-            { v: article.title, t: 's', s: dataCellStyle },                              // C - Tiêu đề
-            { v: article.type || '', t: 's', s: dataCellStyle },                         // D - Loại bài viết
-            { v: '', t: 's', s: numberCellStyle },                                       // E - Xếp loại bài - Tác giả
-            { v: '', t: 's', s: numberCellStyle },                                       // F - Xếp loại bài - Biên tập
-            article.imageKhaiThac ? { v: article.imageKhaiThac, t: 'n', s: numberCellStyle } : { v: '', t: 's', s: numberCellStyle },  // G - Khai thác
-            article.imageTuLieu ? { v: article.imageTuLieu, t: 'n', s: numberCellStyle } : { v: '', t: 's', s: numberCellStyle },      // H - Tư liệu
-            article.imageTacGia ? { v: article.imageTacGia, t: 'n', s: numberCellStyle } : { v: '', t: 's', s: numberCellStyle },      // I - Tác giả (ảnh)
-            { v: '', t: 's', s: numberCellStyle },                                       // J - Xếp loại ảnh
-            { v: '', t: 's', s: dataCellStyle }                                          // K - Ghi chú
+    // Nhóm bài viết theo danh mục
+    const articlesByCategory = new Map<string, ExcelArticle[]>();
+    articles.forEach(article => {
+        const category = article.category || 'Chưa phân loại';
+        if (!articlesByCategory.has(category)) {
+            articlesByCategory.set(category, []);
+        }
+        articlesByCategory.get(category)!.push(article);
+    });
+
+    // Thêm dữ liệu bài viết theo từng danh mục
+    let rowIndex = 1;
+    const categoryRowIndices: { rowIdx: number; category: string }[] = []; // Lưu vị trí các dòng danh mục
+    const articleRowIndices: number[] = []; // Lưu vị trí các dòng bài viết (có STT)
+
+    articlesByCategory.forEach((categoryArticles, category) => {
+        // Thêm hàng tiêu đề danh mục
+        const categoryRow = [
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: category, t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle },
+            { v: '', t: 's', s: categoryRowStyle }
         ];
-        data.push(row);
+        categoryRowIndices.push({ rowIdx: data.length, category }); // Lưu vị trí dòng danh mục
+        data.push(categoryRow);
+
+        // Thêm các bài viết trong danh mục
+        categoryArticles.forEach(article => {
+            const row = [
+                { v: rowIndex, t: 'n', s: numberCellStyle },                                  // A - TT
+                { v: article.author || article.creator || '', t: 's', s: dataCellStyle },    // B - Tác giả
+                { v: article.title, t: 's', s: dataCellStyle },                              // C - Tiêu đề
+                { v: article.type || '', t: 's', s: dataCellStyle },                         // D - Loại bài viết
+                { v: article.publishDateFull || article.publishDate || '', t: 's', s: numberCellStyle }, // E - Ngày xuất bản (MỚI)
+                { v: '', t: 's', s: numberCellStyle },                                       // F - Xếp loại bài - Tác giả
+                { v: '', t: 's', s: numberCellStyle },                                       // G - Xếp loại bài - Biên tập
+                article.imageKhaiThac ? { v: article.imageKhaiThac, t: 'n', s: numberCellStyle } : { v: '', t: 's', s: numberCellStyle },  // H - Khai thác
+                article.imageTuLieu ? { v: article.imageTuLieu, t: 'n', s: numberCellStyle } : { v: '', t: 's', s: numberCellStyle },      // I - Tư liệu
+                article.imageTacGia ? { v: article.imageTacGia, t: 'n', s: numberCellStyle } : { v: '', t: 's', s: numberCellStyle },      // J - Tác giả (ảnh)
+                { v: '', t: 's', s: numberCellStyle },                                       // K - Xếp loại ảnh
+                { v: '', t: 's', s: dataCellStyle }                                          // L - Ghi chú
+            ];
+            articleRowIndices.push(data.length); // Lưu vị trí dòng bài viết
+            data.push(row);
+            rowIndex++;
+        });
     });
 
     // Tạo worksheet từ dữ liệu
@@ -142,17 +205,18 @@ export function exportArticlesToExcel(articles: ExcelArticle[], fileName?: strin
         { wch: 18 },   // B - Tác giả
         { wch: 55 },   // C - Tiêu đề
         { wch: 14 },   // D - Loại bài viết
-        { wch: 8 },    // E - Xếp loại bài - Tác giả
-        { wch: 8 },    // F - Xếp loại bài - Biên tập
-        { wch: 8 },    // G - Khai thác
-        { wch: 8 },    // H - Tư liệu
-        { wch: 8 },    // I - Tác giả (ảnh)
-        { wch: 10 },   // J - Xếp loại ảnh
-        { wch: 15 }    // K - Ghi chú
+        { wch: 12 },   // E - Ngày xuất bản (MỚI)
+        { wch: 8 },    // F - Xếp loại bài - Tác giả
+        { wch: 8 },    // G - Xếp loại bài - Biên tập
+        { wch: 8 },    // H - Khai thác
+        { wch: 8 },    // I - Tư liệu
+        { wch: 8 },    // J - Tác giả (ảnh)
+        { wch: 10 },   // K - Xếp loại ảnh
+        { wch: 15 }    // L - Ghi chú
     ];
 
     // Thiết lập chiều cao dòng
-    ws['!rows'] = [
+    const rows: { hpt: number }[] = [
         { hpt: 15 },   // Dòng 1 - trống
         { hpt: 25 },   // Dòng 2 - Tiêu đề tạp chí
         { hpt: 20 },   // Dòng 3 - Khoảng thời gian
@@ -161,17 +225,41 @@ export function exportArticlesToExcel(articles: ExcelArticle[], fileName?: strin
         { hpt: 25 },   // Dòng 6 - Sub-header
     ];
 
+    // Set chiều cao 36pt cho tất cả dòng bài viết (có STT) - đủ chứa 2 dòng text
+    articleRowIndices.forEach(rowIdx => {
+        rows[rowIdx] = { hpt: 36 };
+    });
+
+    // Tính chiều cao động cho các dòng danh mục (dựa trên độ dài tên)
+    // Chiều cao cơ bản = 30pt, mỗi dòng thêm = 18pt
+    categoryRowIndices.forEach(({ rowIdx, category }) => {
+        const charsPerLine = 50; // Số ký tự tối đa mỗi dòng (ước tính)
+        const numLines = Math.ceil(category.length / charsPerLine) || 1;
+        const height = 30 + (numLines - 1) * 18;
+        rows[rowIdx] = { hpt: Math.max(30, height) };
+    });
+
+    ws['!rows'] = rows;
+
     // Merge cells cho header (đúng theo mẫu)
-    ws['!merges'] = [
-        // Merge tiêu đề tạp chí B2-E2 (row 1, col 1-4)
-        { s: { r: 1, c: 1 }, e: { r: 1, c: 4 } },
-        // Merge khoảng thời gian B3-E3 (row 2, col 1-4)
-        { s: { r: 2, c: 1 }, e: { r: 2, c: 4 } },
-        // Merge "Xếp loại bài" từ E5 đến F5 (index 4-5, row 4)
-        { s: { r: 4, c: 4 }, e: { r: 4, c: 5 } },
-        // Merge "Ảnh" từ G5 đến I5 (index 6-8, row 4)
-        { s: { r: 4, c: 6 }, e: { r: 4, c: 8 } },
+    const merges = [
+        // Merge tiêu đề tạp chí B2-F2 (row 1, col 1-5)
+        { s: { r: 1, c: 1 }, e: { r: 1, c: 5 } },
+        // Merge khoảng thời gian B3-F3 (row 2, col 1-5)
+        { s: { r: 2, c: 1 }, e: { r: 2, c: 5 } },
+        // Merge "Xếp loại bài" từ F5 đến G5 (index 5-6, row 4)
+        { s: { r: 4, c: 5 }, e: { r: 4, c: 6 } },
+        // Merge "Ảnh" từ H5 đến J5 (index 7-9, row 4)
+        { s: { r: 4, c: 7 }, e: { r: 4, c: 9 } },
     ];
+
+    // Merge các ô của hàng danh mục từ cột B đến cột L (để tên danh mục không bị cắt)
+    categoryRowIndices.forEach(({ rowIdx }) => {
+        // Merge từ cột B (1) đến cột L (11) cho mỗi dòng danh mục
+        merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: 11 } });
+    });
+
+    ws['!merges'] = merges;
 
     // Thêm worksheet vào workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách bài viết');
@@ -185,13 +273,14 @@ export function exportArticlesToExcel(articles: ExcelArticle[], fileName?: strin
 }
 
 function calculateDateRange(articles: ExcelArticle[]): string {
-    // Lấy danh sách ngày đăng hợp lệ
+    // Lấy danh sách ngày xuất bản hợp lệ (ưu tiên publishDateFull)
     const dates: Date[] = [];
 
     articles.forEach(article => {
-        if (article.publishDate) {
+        const dateStr = article.publishDateFull || article.publishDate;
+        if (dateStr) {
             // Parse ngày theo format "dd/mm/yyyy" hoặc "dd/mm"
-            const dateParts = article.publishDate.split('/');
+            const dateParts = dateStr.split('/');
             if (dateParts.length >= 2) {
                 const day = parseInt(dateParts[0], 10);
                 const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed

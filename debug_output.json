@@ -1,0 +1,45 @@
+{
+  "header": [
+    "STT",
+    "Tiêu đề",
+    "Trạng thái",
+    "Đường dẫn",
+    "Loại bài viết",
+    "Tác giả",
+    "Danh mục",
+    "Ngày đăng",
+    "Ngày xuất bản",
+    "Người tạo",
+    "Lượt xem",
+    "Trạng thái hiển thị"
+  ],
+  "row3": [
+    3,
+    "Bảo đảm tính chính xác, tính chiến đấu, tính thuyết phục trong tuyên truyền về Đại hội XIV của Đảng",
+    "Xuất bản",
+    "https://xaydungdang.tapchicongsan.org.vn/hoat-dong-cua-lanh-dao-dang-va-nha-nuoc/bao-dam-tinh-chinh-xac-tinh-chien-dau-tinh-thuyet-phuc-trong-tuyen-truyen-ve-dai-hoi-xiv-cua-dang.html&preview=1",
+    "Tin tức",
+    null,
+    "Hoạt động của lãnh đạo các ban Đảng Trung ương",
+    "01/01/2026",
+    "30/12/2025",
+    "Bảo Yến",
+    5,
+    "Hiển thị"
+  ],
+  "row4": [
+    4,
+    "Hà Nội triển khai 12 nhiệm vụ trọng tâm, định hướng lớn trong năm 2026",
+    "Xuất bản",
+    null,
+    "Tin tức",
+    null,
+    "Hoạt động của địa phương - cơ sở",
+    "03/01/2026",
+    "29/12/2025",
+    "Bảo Yến",
+    2,
+    "Hiển thị"
+  ],
+  "totalRows": 88
+}

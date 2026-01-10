@@ -19,8 +19,14 @@ export async function countImagesInArticle(url: string, articleType?: string): P
     // "Tin tổng hợp" và "KT + biên tập" KHÔNG cho phép tác giả (ảnh tác giả → tư liệu)
     // Các loại khác đều cho phép tác giả
     const lowerType = articleType?.toLowerCase() || '';
-    const noAuthorTypes = ['tin tổng hợp', 'kt + biên tập'];
+    const noAuthorTypes = ['tin tổng hợp', 'kt + biên tập', 'tin kt', 'bài kt'];
     const allowAuthor = !noAuthorTypes.includes(lowerType);
+
+    // AUDIO và VIDEO không đếm ảnh, trả về 0 luôn
+    const noImageTypes = ['audio', 'video'];
+    if (noImageTypes.includes(lowerType) || url.includes('/audio/') || url.includes('/video/')) {
+        return { khaiThac: 0, tuLieu: 0, tacGia: 0 };
+    }
 
     try {
         const html = await fetchHtmlContent(url);
@@ -72,7 +78,8 @@ export async function countImagesInArticle(url: string, articleType?: string): P
             // Tìm figure chứa ảnh này
             const figure = img.closest('figure');
             if (!figure) {
-                // Ảnh không trong figure → BỎ QUA (không phải ảnh bài viết)
+                // Ảnh không trong figure (thường là bài cũ hoặc ảnh chèn trực tiếp) → Tính là Khai thác
+                khaiThac++;
                 return;
             }
 
@@ -110,8 +117,52 @@ export async function countImagesInArticle(url: string, articleType?: string): P
                 return;
             }
 
-            // Kiểm tra pattern "TTXVN" hoặc "Ảnh: TTXVN" → Khai thác (ảnh từ Thông tấn xã)
-            if (lowerCaption.includes('ttxvn')) {
+            // Danh sách các hãng thông tấn nổi tiếng → Khai thác
+            const newsAgencies = [
+                'ttxvn',           // Thông tấn xã Việt Nam
+                'reuters',         // Reuters
+                'afp',             // Agence France-Presse
+                'ap',              // Associated Press
+                'getty',           // Getty Images
+                'getty images',
+                'xinhua',          // Tân Hoa Xã (Trung Quốc)
+                'tass',            // TASS (Nga)
+                'ria novosti',     // RIA Novosti (Nga)
+                'yonhap',          // Yonhap (Hàn Quốc)
+                'kyodo',           // Kyodo (Nhật Bản)
+                'epa',             // European Pressphoto Agency
+                'dpa',             // Deutsche Presse-Agentur (Đức)
+                'ansa',            // ANSA (Ý)
+                'anadolu',         // Anadolu (Thổ Nhĩ Kỳ)
+                'sputnik',         // Sputnik (Nga)
+                'pti',             // Press Trust of India
+                'vna',             // Vietnam News Agency (tên tiếng Anh của TTXVN)
+                'vnexpress',       // Báo VnExpress
+                'tuoitre',         // Báo Tuổi Trẻ
+                'thanhnien',       // Báo Thanh Niên
+                'nhandan',         // Báo Nhân Dân
+                'baochinhphu',     // Báo Chính Phủ
+                'qdnd',            // Quân đội Nhân dân
+                'cand',            // Công an Nhân dân
+                'vietnamplus',     // VietnamPlus
+                'vov',             // Đài Tiếng nói Việt Nam
+                'vtv',             // Đài Truyền hình Việt Nam
+                'baotintuc',       // Báo Tin tức
+                'bild',            // Bild (Đức)
+                'cnn',             // CNN
+                'bbc',             // BBC
+                'bloomberg',       // Bloomberg
+                'nyt',             // New York Times
+                'washington post',
+                'the guardian',
+                'le monde',
+                'der spiegel',
+                'pool',            // Pool photo (ảnh pool từ nhiều nguồn)
+            ];
+
+            // Kiểm tra xem caption có chứa tên hãng thông tấn không
+            const isNewsAgency = newsAgencies.some(agency => lowerCaption.includes(agency));
+            if (isNewsAgency) {
                 khaiThac++;
                 return;
             }

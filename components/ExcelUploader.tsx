@@ -21,11 +21,12 @@ export function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderProps) {
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-                // Skip first 3 rows (title, timestamp, headers)
+                // Skip header row (row 0), data starts from row 1
                 const articles: ExcelArticle[] = [];
-                for (let i = 3; i < jsonData.length; i++) {
+                for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i];
-                    if (row && row[0] && row[3]) { // Has STT and URL
+                    // Chỉ cần có STT hoặc Tiêu đề là đủ (URL có thể trống)
+                    if (row && (row[0] || row[1])) {
                         // Clean URL - remove &preview=1 if present
                         let url = String(row[3] || '');
                         url = url.replace('&preview=1', '').replace('?preview=1', '');
@@ -52,7 +53,7 @@ export function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderProps) {
                     return;
                 }
 
-                // Sắp xếp theo ngày đăng giảm dần (mới nhất lên đầu)
+                // Sắp xếp theo ngày xuất bản giảm dần (mới nhất lên đầu)
                 articles.sort((a, b) => {
                     // Parse date từ format "dd/mm/yyyy" hoặc "dd-mm-yyyy"
                     const parseDate = (dateStr: string): Date => {
@@ -67,8 +68,9 @@ export function ExcelUploader({ onDataLoaded, onError }: ExcelUploaderProps) {
                         return new Date(0);
                     };
 
-                    const dateA = parseDate(a.publishDate);
-                    const dateB = parseDate(b.publishDate);
+                    // Ưu tiên publishDateFull, fallback về publishDate
+                    const dateA = parseDate(a.publishDateFull || a.publishDate);
+                    const dateB = parseDate(b.publishDateFull || b.publishDate);
                     return dateB.getTime() - dateA.getTime(); // Giảm dần
                 });
 

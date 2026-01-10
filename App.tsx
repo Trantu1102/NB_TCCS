@@ -100,6 +100,19 @@ function App() {
     setError(null);
   };
 
+  // Hàm fetch nội dung bài viết cho batch export PDF
+  const fetchArticleContent = async (targetUrl: string): Promise<{ title: string; author: string; content: string; summary: string; mainImage: string }> => {
+    const html = await fetchHtmlContent(targetUrl);
+    const data = extractArticleData(html, targetUrl);
+    return {
+      title: data.title,
+      author: data.author || '',
+      content: data.content,
+      summary: data.summary || '',
+      mainImage: data.mainImage || ''
+    };
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 font-sans text-gray-900">
       <div className="max-w-7xl mx-auto">
@@ -171,6 +184,7 @@ function App() {
                   a.stt === updatedArticle.stt ? updatedArticle : a
                 ));
               }}
+              onFetchArticleContent={fetchArticleContent}
             />
           </div>
         )}
